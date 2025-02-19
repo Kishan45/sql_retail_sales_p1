@@ -4,7 +4,7 @@
 
 **Project Title**: Retail Sales Analysis  
 **Level**: Beginner  
-**Database**: `p1_retail_db`
+**Database**: `sql_project_p1`
 
 This project is designed to demonstrate SQL skills and techniques typically used by data analysts to explore, clean, and analyze retail sales data. The project involves setting up a retail sales database, performing exploratory data analysis (EDA), and answering specific business questions through SQL queries. This project is ideal for those who are starting their journey in data analysis and want to build a solid foundation in SQL.
 
@@ -19,11 +19,11 @@ This project is designed to demonstrate SQL skills and techniques typically used
 
 ### 1. Database Setup
 
-- **Database Creation**: The project starts by creating a database named `p1_retail_db`.
+- **Database Creation**: The project starts by creating a database named `sql_project_p1`.
 - **Table Creation**: A table named `retail_sales` is created to store the sales data. The table structure includes columns for transaction ID, sale date, sale time, customer ID, gender, age, product category, quantity sold, price per unit, cost of goods sold (COGS), and total sale amount.
 
 ```sql
-CREATE DATABASE p1_retail_db;
+CREATE DATABASE sql_project_p1;
 
 CREATE TABLE retail_sales
 (
@@ -31,9 +31,9 @@ CREATE TABLE retail_sales
     sale_date DATE,	
     sale_time TIME,
     customer_id INT,	
-    gender VARCHAR(10),
+    gender VARCHAR(6),
     age INT,
-    category VARCHAR(35),
+    category VARCHAR(15),
     quantity INT,
     price_per_unit FLOAT,	
     cogs FLOAT,
@@ -49,21 +49,29 @@ CREATE TABLE retail_sales
 - **Null Value Check**: Check for any null values in the dataset and delete records with missing data.
 
 ```sql
-SELECT COUNT(*) FROM retail_sales;
-SELECT COUNT(DISTINCT customer_id) FROM retail_sales;
-SELECT DISTINCT category FROM retail_sales;
+
+SELECT
+	COUNT(*)
+FROM retail_sales
 
 SELECT * FROM retail_sales
 WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR 
-    gender IS NULL OR age IS NULL OR category IS NULL OR 
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
+	age IS NULL OR
+	category IS NULL OR
+	quantity IS NULL OR
+	price_per_unit IS NULL OR
+	cogs IS NULL OR
+	total_sale IS NULL
+
 
 DELETE FROM retail_sales
 WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR 
-    gender IS NULL OR age IS NULL OR category IS NULL OR 
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
+	age IS NULL OR
+	category IS NULL OR
+	quantity IS NULL OR
+	price_per_unit IS NULL OR
+	cogs IS NULL OR
+	total_sale IS NULL
 ```
 
 ### 3. Data Analysis & Findings
@@ -130,20 +138,25 @@ ORDER BY 1
 
 7. **Write a SQL query to calculate the average sale for each month. Find out best selling month in each year**:
 ```sql
+WITH T1 AS
+(
+	SELECT 
+		EXTRACT(YEAR FROM sale_date) as year, 
+		EXTRACT(MONTH FROM sale_date) as month , 
+		ROUND(AVG(total_sale)) as avg_sale,
+		RANK() OVER(PARTITION BY EXTRACT(YEAR FROM sale_date) ORDER BY AVG(total_sale) DESC) as rank
+	FROM
+		retail_sales
+	GROUP BY
+	year, month
+)
+
 SELECT 
-       year,
-       month,
-    avg_sale
-FROM 
-(    
-SELECT 
-    EXTRACT(YEAR FROM sale_date) as year,
-    EXTRACT(MONTH FROM sale_date) as month,
-    AVG(total_sale) as avg_sale,
-    RANK() OVER(PARTITION BY EXTRACT(YEAR FROM sale_date) ORDER BY AVG(total_sale) DESC) as rank
-FROM retail_sales
-GROUP BY 1, 2
-) as t1
+	year,
+	month,
+	avg_sale
+FROM
+	T1
 WHERE rank = 1
 ```
 
@@ -161,30 +174,34 @@ LIMIT 5
 9. **Write a SQL query to find the number of unique customers who purchased items from each category.**:
 ```sql
 SELECT 
-    category,    
-    COUNT(DISTINCT customer_id) as cnt_unique_cs
-FROM retail_sales
-GROUP BY category
+	category,
+	count(DISTINCT(customer_id)) AS customer
+FROM
+	retail_sales
+GROUP BY
+	category
 ```
 
 10. **Write a SQL query to create each shift and number of orders (Example Morning <12, Afternoon Between 12 & 17, Evening >17)**:
 ```sql
-WITH hourly_sale
-AS
+WITH t2 AS
 (
-SELECT *,
-    CASE
-        WHEN EXTRACT(HOUR FROM sale_time) < 12 THEN 'Morning'
-        WHEN EXTRACT(HOUR FROM sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
-        ELSE 'Evening'
-    END as shift
-FROM retail_sales
+	SELECT 
+		CASE
+			WHEN EXTRACT(HOUR FROM sale_time ) < 12 THEN 'morning'
+			WHEN EXTRACT(HOUR FROM sale_time) BETWEEN 12 AND 17 THEN 'afternoon'
+			ELSE
+				'evening'
+			END AS shift,
+		Count(transactions_id)
+FROM
+	retail_sales
+
+GROUP BY 
+	shift
 )
-SELECT 
-    shift,
-    COUNT(*) as total_orders    
-FROM hourly_sale
-GROUP BY shift
+
+SELECT * FROM t2
 ```
 
 ## Findings
